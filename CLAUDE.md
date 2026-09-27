@@ -1,66 +1,48 @@
 # Your harness
 
-## What this project is
+## Depth over simplicity
 
-An integrated ANU Student Portal: one coherent surface over the things a
-student currently has to chase across ANUHub, Canvas and MyTimetable
-(courses, timetable, assessments, results, fees, notices). It is a
-**consolidation and redesign of the existing ANU student experience**, not a
-greenfield university platform — the entities, relationships and workflows
-(enrolment, timetabling, assessment weighting, SSAF, census dates) should
-stay recognisably ANU's, even where the specific rows are invented.
+Assignment 1 came back marked too simple, too linear, and not interactive
+enough. That was a directing failure, not a scope failure: I let the agent
+reach for whichever version was easiest to implement instead of holding out
+for the version that was actually interesting. Rules to stop that happening
+again:
 
-There is no real integration with ANUHub/Canvas/MyTimetable — they have no
-student-facing API this prototype could call, and scraping behind ANU SSO is
-not something to attempt. Seeded/mocked data stands in for what those
-systems would supply.
+- Never simplify an idea just because the simpler version is easier to build.
+  A focused idea still needs enough depth, variation and room to explore ---
+  "focused" means the central idea stays clear, not that everything around it
+  gets stripped away.
+- This is HCI and interactive design work. Don't default to static
+  information pages, plain forms, or basic input-in/output-out interactions.
+  The interaction itself should let someone explore, experiment, get feedback
+  and come to understand the idea by using it, not by reading about it.
+- Visual presentation and playfulness are part of the quality of the
+  response, not decoration to bolt on if time allows. Treat them as
+  load-bearing from the start of the build, not a pass at the end.
+- When exploring a direction, start from something richer than feels
+  comfortable and refine it down, rather than starting minimal and hoping to
+  add richness back in later --- that's how last time ended up linear.
 
-## Scope discipline
+## Verify agent work before trusting it
 
-Crit 7's brief explicitly warns against rebuilding the whole target system.
-This project stays wide (courses, timetable, assessments, results, fees,
-notices all render through the same shell) but only **one flow is genuinely
-full-stack**: enrolling in or dropping a course. That single write is what
-every other area reads through — Timetable, Assessments and Fees all derive
-from `enrolments`, not from their own stored copy of "what am I taking."
-Completing a task in the action queue is the second real write. Everything
-else (assessments content, results, most notices, historical fee items) is
-seeded, read-only data rendered through the same layout.
+A "done" report is a claim, not evidence. Passing checks are necessary but
+not sufficient either --- a check only tests what it was written to test,
+and something can pass every automated check while still being visibly wrong
+in the actual rendered result.
 
-Do not:
-- Add a second independent write path per domain (e.g. a separate "add
-  assessment" or "edit result" flow) — that's the rebuild-the-whole-thing
-  trap the brief calls out.
-- Add real authentication. There is exactly one seeded student
-  (`src/lib/seed.ts`); every query acts as that student.
-- Let any page keep its own copy of enrolment state. If a page needs to know
-  what the student is taking, it queries through `enrolments` — that's what
-  makes the portal "integrated" rather than a shared nav bar over static
-  pages.
+- Read the real diff and rerun the checks yourself before calling any
+  delegated or background work complete --- don't take a summary report on
+  faith, even when it looks accurate.
+- Look at the actual rendered artefact (the page, the screen, the output),
+  not just green checks. A broken result can still pass every check that
+  exists; only looking at the thing catches what the checks don't measure.
 
-## Working with the schema
+## Ground a redesign in the real reference system
 
-`src/lib/schema.ts` is ground truth. To change it: edit the schema, run
-`pnpm db:generate`, and commit both the schema change and the migration it
-writes under `drizzle/`. Never edit the database by hand — migrations run at
-boot (`src/lib/db.ts`) against whatever's on the Fly volume, so the migration
-trail is what keeps a running deployment compatible with new code.
-
-Seed data (`src/lib/seed.ts`) only runs once, against an empty database — it
-is how a fresh volume gets a lived-in-looking account, not a fixture reset
-mechanism. Don't call it from anywhere except `db.ts`'s boot path.
-
-## Tests
-
-`spec/portal.test.ts` is the contract that matters most here: it drives an
-enrolment change over HTTP and asserts the effect shows up on Timetable,
-Assessments, Fees and Notices, and survives a fresh page load — not just the
-redirect response. Keep it green, and extend it (not a parallel test file)
-if the spine grows another downstream effect.
-
-## Process
-
-Commit as the work actually happens, not as one dump at the end — the spec
-checks for a commit history that grew with the work. Keep `PROCESS.md` and
-`reflections/crit-7.md` current as you go rather than backfilling them at the
-end.
+When a project consolidates or redesigns an existing system, inspect the
+real reference interface itself --- actual screenshots, rendered pages, or
+primary documentation showing what it looks like and how it organises
+information --- before restructuring the UI. Don't infer the product from
+its branding, from a text description of what it does, or from generic
+design patterns for "that kind of app": those get the vibe right and the
+actual structure wrong.
