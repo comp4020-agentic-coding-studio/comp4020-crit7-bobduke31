@@ -1,54 +1,61 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-Written by you, for a reader: how you got from the brief to the harness and
-agentic workflow behind this submission. Markers read this file and follow its
-citations; they don't trawl the repo for evidence you didn't point at.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and its
-[word counts](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#word-counts)
-cover every deliverable.
-
 ## What I built
 
-A sentence or two. `README.md` is where the account of what the app is and what
-good means here lives; this file is how you got there.
+An integrated ANU Student Portal — Today, Courses, Timetable, Assessments,
+Results, Fees and Notices as one shell, with enrolling in or dropping a
+course as the one genuinely full-stack write every other area reads through.
 
 ## How I got here
 
-The account of the process: how the work actually went, and how you knew the
-result was right. Tell it in whatever order makes it clear. A weekly prototype
-needs a paragraph or two; an assignment needs more.
+I started from an idea I brought in myself: ANU's student experience feels
+fragmented across ANUHub, Canvas and MyTimetable, where UTAS presents the
+same kind of multiplicity through one student portal. Before writing any
+code I asked the agent to research both systems and check the idea against
+the published Crit 7 brief, rather than assume it was a good fit. That
+research (not committed as code, so no citation here) surfaced the actual
+risk: the brief explicitly warns against rebuilding a whole ANU system, and
+"build ANU's version of the UTAS portal" read, literally, as integrating
+three real backends with no student-facing API — not attemptable, and not
+what the brief was asking for anyway.
 
-Cite the record as you go, as links whose text is the commit hash or range and
-whose target is this repo's commit or compare URL, so a reader clicks straight
-to the evidence:
+My first instinct from that research was to narrow to one small tool
+(tutorial/lab self-allocation). I proposed that as the direction; the
+response was that the project should stay a complete, integrated portal, not
+narrow to one feature, but should still respect scope by not rebuilding
+every backend, and should read as a consolidation of ANU's real workflows
+rather than a greenfield platform. That reframed the problem: breadth of
+surface and depth of implementation are separable. The resolution was to
+build all seven areas as one shell, but make only enrolment (plus completing
+a task) a real write, with everything downstream of it — timetable,
+assessments, fees — reading through the same `enrolments` table instead of
+storing its own copy of "what am I taking."
 
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
+From there it was mechanical: schema and seed data first
+([`2f7f7f9`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit7-bobduke31/commit/2f7f7f9)),
+then the two write paths
+([`ad559a1`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit7-bobduke31/commit/ad559a1)),
+then the seven-page shell reading through them
+([`8e7b0eb`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit7-bobduke31/commit/8e7b0eb)),
+then the spec test proving the propagation claim over HTTP rather than by
+inspection
+([`edb8724`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit7-bobduke31/commit/edb8724)).
+Full range:
+[`2f7f7f9...edb8724`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit7-bobduke31/compare/2f7f7f9...edb8724).
 
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
+> Use enrolment as the main full-stack spine, but make the whole portal read
+> from the same coherent student state. Changes such as enrolling in or
+> dropping a course should meaningfully propagate through related areas like
+> Today, Courses, Timetable, Assessments, Fees and Notices, so the other
+> pages do not feel like disconnected mockups.
 
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the point better than a sentence does.
-Commit the file to this repo and link it with a **relative** path, which is what
-makes it render on GitHub: `![alt text](docs/before.png)`. Images don't count
-towards the word count and don't replace the citation.
-
-## Before you ship
-
-`pnpm check:evidence` verifies that this comment is gone, that your citations
-resolve to real commits, that a crit week's reflection entry is in
-`reflections/`, and that your `CLAUDE.md` is there. It checks that your account
-is traceable, not that it is good: that is the marker's call.
-
-Images aren't checked: unlike a citation whose SHA doesn't resolve, a broken
-image is visible the moment this file is rendered on GitHub.
+I directed the shape of the data model and the propagation requirement
+myself (which table is the spine, which pages are allowed to be read-only,
+that no page may keep its own enrolment state); the agent's contribution was
+turning that into a concrete schema, the seven page implementations, and the
+test that checks the propagation claim actually holds rather than just
+looking right in one screenshot. I corrected two seeded-data bugs the first
+test run surfaced — an assertion checking assessments propagation for a
+course that had none seeded, and a hardcoded fee figure that didn't match
+the actual multi-course total — by running the spec and fixing the
+underlying seed/test mismatch rather than loosening the assertions.
