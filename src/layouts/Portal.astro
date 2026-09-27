@@ -1,0 +1,56 @@
+---
+import { getCurrentStudent } from "../lib/db";
+import "../styles.css";
+
+interface Props {
+  title: string;
+  active: string;
+}
+
+const { title, active } = Astro.props;
+const student = getCurrentStudent();
+
+const nav = [
+  { href: "/", label: "Today" },
+  { href: "/courses", label: "Courses" },
+  { href: "/timetable", label: "Timetable" },
+  { href: "/assessments", label: "Assessments" },
+  { href: "/results", label: "Results" },
+  { href: "/fees", label: "Fees" },
+  { href: "/notices", label: "Notices" },
+  { href: "/readme/", label: "About" },
+];
+---
+
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · ANU Student Portal</title>
+  </head>
+  <body>
+    <header class="portal-header">
+      <a class="portal-brand" href="/">ANU Student Portal</a>
+      <p class="portal-identity">{student.name} · {student.uniId}</p>
+    </header>
+    <nav aria-label="site" class="portal-nav">
+      {
+        nav.map((item) => (
+          <a href={item.href} aria-current={item.label === active ? "page" : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+    <main>
+      <slot />
+    </main>
+    <script>
+      // Any tab's enrolment/task change broadcasts "change"; every other
+      // open tab reloads so it re-reads the same state — the live half of
+      // the integration, not just the persisted half.
+      new EventSource("/api/events").addEventListener("change", () => location.reload());
+    </script>
+  </body>
+</html>

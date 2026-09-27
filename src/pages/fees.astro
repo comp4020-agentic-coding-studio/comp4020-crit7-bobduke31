@@ -1,0 +1,62 @@
+---
+import Portal from "../layouts/Portal.astro";
+import { currentTuitionEstimate, getCurrentStudent, listFeeItems } from "../lib/db";
+import { formatMoney } from "../lib/format";
+
+const student = getCurrentStudent();
+const tuition = currentTuitionEstimate(student.id);
+const items = listFeeItems(student.id);
+const unpaid = items.filter((item) => item.status === "unpaid");
+const balance = tuition + unpaid.reduce((total, item) => total + item.amount, 0);
+---
+
+<Portal title="Fees" active="Fees">
+  <h1>Fees</h1>
+  <p class="lede">
+    Tuition below is computed from your current enrolments — enrol or drop a course on the
+    <a href="/courses">Courses</a> page and this total changes with it.
+  </p>
+
+  <section class="card-grid">
+    <div class="stat-card">
+      <span class="stat-value">{formatMoney(tuition)}</span>
+      <span class="stat-label">Semester 2 2026 tuition estimate</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{formatMoney(balance)}</span>
+      <span class="stat-label">Total balance (tuition + unpaid items)</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Other fee items</h2>
+    {
+      items.length === 0 ? (
+        <p class="empty">No other fee items on record.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Description</th>
+              <th scope="col">Due</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr>
+                <td>{item.description}</td>
+                <td>{item.dueDate}</td>
+                <td>{formatMoney(item.amount)}</td>
+                <td>
+                  <span class={`badge badge-${item.status}`}>{item.status}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </section>
+</Portal>

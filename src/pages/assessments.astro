@@ -1,0 +1,44 @@
+---
+import Portal from "../layouts/Portal.astro";
+import { getCurrentStudent, listAssessmentsForEnrolled } from "../lib/db";
+
+const student = getCurrentStudent();
+const rows = listAssessmentsForEnrolled(student.id);
+---
+
+<Portal title="Assessments" active="Assessments">
+  <h1>Assessments</h1>
+  <p class="lede">
+    Every assessment across your currently-enrolled courses, in one due-date order — the view
+    that dropping a course also affects.
+  </p>
+
+  {
+    rows.length === 0 ? (
+      <p class="empty">
+        No assessments yet — <a href="/courses">enrol in a course</a> to see its assessment tasks.
+      </p>
+    ) : (
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Due</th>
+            <th scope="col">Course</th>
+            <th scope="col">Assessment</th>
+            <th scope="col">Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ assessment, course }) => (
+            <tr>
+              <td>{assessment.dueDate}</td>
+              <td>{course.code}</td>
+              <td>{assessment.title}</td>
+              <td>{assessment.weightPercent}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Portal>

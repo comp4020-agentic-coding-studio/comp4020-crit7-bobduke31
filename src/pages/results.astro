@@ -1,0 +1,41 @@
+---
+import Portal from "../layouts/Portal.astro";
+import { getCurrentStudent, listResults } from "../lib/db";
+
+const student = getCurrentStudent();
+const rows = listResults(student.id);
+---
+
+<Portal title="Results" active="Results">
+  <h1>Results</h1>
+  <p class="lede">Grades from completed teaching periods. This is historical record, not a flow this prototype writes to.</p>
+
+  {
+    rows.length === 0 ? (
+      <p class="empty">No results recorded yet.</p>
+    ) : (
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Teaching period</th>
+            <th scope="col">Course</th>
+            <th scope="col">Grade</th>
+            <th scope="col">Mark</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ result, course }) => (
+            <tr>
+              <td>{result.teachingPeriod}</td>
+              <td>
+                {course.code} {course.title}
+              </td>
+              <td>{result.grade}</td>
+              <td>{result.mark}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+</Portal>

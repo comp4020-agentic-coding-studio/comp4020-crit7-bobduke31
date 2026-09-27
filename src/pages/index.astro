@@ -1,53 +1,105 @@
 ---
-import { listMessages } from "../lib/db";
-import "../styles.css";
+import Portal from "../layouts/Portal.astro";
+import {
+  currentTuitionEstimate,
+  getCurrentStudent,
+  listEnrolments,
+  listNotices,
+  listSessionsForEnrolled,
+  listTasks,
+} from "../lib/db";
+import { formatMoney, sortByDayAndTime } from "../lib/format";
 
-const messages = listMessages();
+const student = getCurrentStudent();
+const enrolments = listEnrolments(student.id);
+const upcoming = sortByDayAndTime(
+  listSessionsForEnrolled(student.id).map(({ session, course }) => ({ ...session, course })),
+).slice(0, 3);
+const openTasks = listTasks(student.id).filter((t) => t.status === "open");
+const notices = listNotices(student.id).slice(0, 3);
+const tuition = currentTuitionEstimate(student.id);
 ---
 
-<!doctype html>
-<html lang="en-AU">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>COMP4020 prototype</title>
-  </head>
-  <body>
-    <nav aria-label="site">
-      <a href="/">Guestbook</a>
-      <a href="/readme/">About</a>
-    </nav>
-    <main>
-      <h1>Guestbook</h1>
-      <p>
-        A minimal full-stack starter: messages live in SQLite on the machine's
-        volume (state survives a reload and a redeploy), and new messages
-        appear in every open tab over a server-sent-events stream — open this
-        page twice and sign it in one. Replace all of this with your own
-        prototype.
-      </p>
-      <form method="post" action="/api/messages">
-        <label for="body">Leave a message</label>
-        <input id="body" name="body" required maxlength="500" />
-        <button>Sign</button>
-      </form>
-      <ul id="messages">
-        {messages.map((message) => <li>{message.body}</li>)}
-      </ul>
-    </main>
-    <script>
-      // The live half of the demo: subscribe to the SSE stream and prepend
-      // messages as they arrive. The form itself needs none of this — its
-      // POST + redirect re-renders the submitting tab from SQLite; this
-      // stream is how every other tab finds out.
-      const list = document.querySelector("#messages");
-      const source = new EventSource("/api/events");
-      source.addEventListener("message", (event) => {
-        const message = JSON.parse(event.data);
-        const item = document.createElement("li");
-        item.textContent = message.body;
-        list?.prepend(item);
-      });
-    </script>
-  </body>
-</html>
+<Portal title="Today" active="Today">
+  <h1>Today</h1>
+  <p class="lede">
+    One place for what {student.name.split(" ")[0]} needs across enrolment, timetable, assessments,
+    fees and notices — instead of ANUHub, Canvas and MyTimetable separately.
+  </p>
+
+  <section class="card-grid">
+    <a class="stat-card" href="/courses">
+      <span class="stat-value">{enrolments.length}</span>
+      <span class="stat-label">Enrolled courses</span>
+    </a>
+    <a class="stat-card" href="/fees">
+      <span class="stat-value">{formatMoney(tuition)}</span>
+      <span class="stat-label">Tuition estimate</span>
+    </a>
+    <a class="stat-card" href="/notices">
+      <span class="stat-value">{notices.length}</span>
+      <span class="stat-label">Recent notices</span>
+    </a>
+  </section>
+
+  <section>
+    <h2>Needs your attention</h2>
+    {
+      openTasks.length === 0 ? (
+        <p class="empty">Nothing outstanding — you're all caught up.</p>
+      ) : (
+        <ul class="task-list">
+          {openTasks.map((task) => (
+            <li>
+              <form method="post" action="/api/tasks">
+                <input type="hidden" name="task_id" value={task.id} />
+                <input type="hidden" name="redirect_to" value="/" />
+                <span>
+                  {task.href ? <a href={task.href}>{task.title}</a> : task.title}
+                </span>
+                <button type="submit">Mark done</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <section>
+    <h2>Your next sessions</h2>
+    {
+      upcoming.length === 0 ? (
+        <p class="empty">
+          No sessions yet — <a href="/courses">enrol in a course</a> to see it on your timetable.
+        </p>
+      ) : (
+        <ul class="session-list">
+          {upcoming.map((s) => (
+            <li>
+              <strong>{s.course.code}</strong> {s.activityType} — {s.dayOfWeek} {s.startTime}–
+              {s.endTime}, {s.location}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <p><a href="/timetable">View full timetable →</a></p>
+  </section>
+
+  <section>
+    <h2>Latest notices</h2>
+    <ul class="notice-list">
+      {
+        notices.map((notice) => (
+          <li>
+            <span class="notice-category">{notice.category}</span>
+            <strong>{notice.title}</strong>
+            <p>{notice.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+    <p><a href="/notices">View all notices →</a></p>
+  </section>
+</Portal>

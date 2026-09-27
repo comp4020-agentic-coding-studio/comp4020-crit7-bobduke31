@@ -1,0 +1,45 @@
+---
+import Portal from "../layouts/Portal.astro";
+import { getCurrentStudent, listSessionsForEnrolled } from "../lib/db";
+import { sortByDayAndTime } from "../lib/format";
+
+const student = getCurrentStudent();
+const rows = sortByDayAndTime(
+  listSessionsForEnrolled(student.id).map(({ session, course }) => ({ ...session, course })),
+);
+
+const byDay = new Map<string, typeof rows>();
+for (const row of rows) {
+  byDay.set(row.dayOfWeek, [...(byDay.get(row.dayOfWeek) ?? []), row]);
+}
+---
+
+<Portal title="Timetable" active="Timetable">
+  <h1>Timetable</h1>
+  <p class="lede">
+    Derived from your current enrolments — no separate timetable data to keep in sync. Drop a
+    course on the <a href="/courses">Courses</a> page and its sessions disappear from here.
+  </p>
+
+  {
+    byDay.size === 0 ? (
+      <p class="empty">
+        No sessions yet — <a href="/courses">enrol in a course</a> to populate your timetable.
+      </p>
+    ) : (
+      [...byDay.entries()].map(([day, sessions]) => (
+        <section>
+          <h2>{day}</h2>
+          <ul class="session-list">
+            {sessions.map((s) => (
+              <li>
+                <strong>{s.course.code}</strong> {s.activityType} — {s.startTime}–{s.endTime},{" "}
+                {s.location}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    )
+  }
+</Portal>
