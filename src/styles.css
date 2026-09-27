@@ -609,6 +609,20 @@ button.secondary:hover {
   display: contents;
 }
 
+.task-done-group {
+  margin-top: 0.75rem;
+}
+
+.task-done-group summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.task-done-group .task-list {
+  margin-top: 0.6rem;
+}
+
 .session-list li {
   background: var(--surface);
   border: 1px solid var(--line);

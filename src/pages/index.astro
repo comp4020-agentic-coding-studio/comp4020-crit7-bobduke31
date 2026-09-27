@@ -27,7 +27,9 @@ for (const row of sessionRows) {
   if (!nextSessionByCourseId.has(row.course.id)) nextSessionByCourseId.set(row.course.id, row);
 }
 
-const openTasks = listTasks(student.id).filter((t) => t.status === "open");
+const allTasks = listTasks(student.id);
+const openTasks = allTasks.filter((t) => t.status === "open");
+const doneTasks = allTasks.filter((t) => t.status === "done");
 const notices = listNotices(student.id).slice(0, 3);
 const tuition = currentTuitionEstimate(student.id);
 const unpaidFees = listFeeItems(student.id).filter((item) => item.status === "unpaid");
@@ -72,6 +74,7 @@ const teachingPeriod = enrolments[0]?.course.teachingPeriod;
                 <li>
                   <form method="post" action="/api/tasks">
                     <input type="hidden" name="task_id" value={task.id} />
+                    <input type="hidden" name="action" value="complete" />
                     <input type="hidden" name="redirect_to" value="/" />
                     <span>{task.href ? <a href={task.href}>{task.title}</a> : task.title}</span>
                     <button type="submit">Mark done</button>
@@ -79,6 +82,26 @@ const teachingPeriod = enrolments[0]?.course.teachingPeriod;
                 </li>
               ))}
             </ul>
+          )
+        }
+        {
+          doneTasks.length > 0 && (
+            <details class="task-done-group">
+              <summary>Completed ({doneTasks.length})</summary>
+              <ul class="task-list">
+                {doneTasks.map((task) => (
+                  <li>
+                    <form method="post" action="/api/tasks">
+                      <input type="hidden" name="task_id" value={task.id} />
+                      <input type="hidden" name="action" value="reopen" />
+                      <input type="hidden" name="redirect_to" value="/" />
+                      <span>{task.href ? <a href={task.href}>{task.title}</a> : task.title}</span>
+                      <button type="submit" class="secondary">Reopen</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )
         }
       </section>

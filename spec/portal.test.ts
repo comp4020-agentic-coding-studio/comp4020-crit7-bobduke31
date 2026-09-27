@@ -72,16 +72,34 @@ describe("enrolment is the portal's spine", () => {
 describe("the task queue persists across reload", () => {
   it("shows the seeded fees task as outstanding", async () => {
     expect(await get("/")).toContain("Pay outstanding OSHC top-up");
+    expect(await get("/")).not.toContain("Completed");
   });
 
-  it("completing it removes it from Today and stays gone on a fresh load", async () => {
+  // Completing a task must stay reversible: this is a shared public demo
+  // with one seeded student, so a one-way "done" would let the first
+  // visitor permanently consume the task queue for everyone after them.
+  it("completing it moves it to Completed (not gone) and stays there on a fresh load", async () => {
     // task 1 is the first row the seed inserts (see src/lib/seed.ts)
     const res = await post(
       "/api/tasks",
-      new URLSearchParams({ task_id: "1", redirect_to: "/" }),
+      new URLSearchParams({ task_id: "1", action: "complete", redirect_to: "/" }),
     );
     expect(res.status).toBe(303);
 
-    expect(await get("/")).not.toContain("Pay outstanding OSHC top-up");
+    const page = await get("/");
+    expect(page).toContain("Completed (1)");
+    expect(page).toContain("Pay outstanding OSHC top-up");
+  });
+
+  it("reopening it restores it as outstanding and survives a fresh load", async () => {
+    const res = await post(
+      "/api/tasks",
+      new URLSearchParams({ task_id: "1", action: "reopen", redirect_to: "/" }),
+    );
+    expect(res.status).toBe(303);
+
+    const page = await get("/");
+    expect(page).not.toContain("Completed");
+    expect(page).toContain("Pay outstanding OSHC top-up");
   });
 });

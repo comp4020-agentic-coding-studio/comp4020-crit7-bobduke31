@@ -208,3 +208,14 @@ export function completeTask(studentId: number, taskId: number) {
   db.update(tasks).set({ status: "done" }).where(eq(tasks.id, taskId)).run();
   bus.emit("change");
 }
+
+export function reopenTask(studentId: number, taskId: number) {
+  const task = db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, taskId), eq(tasks.studentId, studentId)))
+    .get();
+  if (!task) return;
+  db.update(tasks).set({ status: "open" }).where(eq(tasks.id, taskId)).run();
+  bus.emit("change");
+}
