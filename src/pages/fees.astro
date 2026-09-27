@@ -7,14 +7,14 @@ const student = getCurrentStudent();
 const tuition = currentTuitionEstimate(student.id);
 const items = listFeeItems(student.id);
 const unpaid = items.filter((item) => item.status === "unpaid");
+const paid = items.filter((item) => item.status === "paid");
 const balance = tuition + unpaid.reduce((total, item) => total + item.amount, 0);
 ---
 
 <Portal title="Fees" active="Fees">
   <h1>Fees</h1>
   <p class="lede">
-    Tuition below is computed from your current enrolments — enrol or drop a course on the
-    <a href="/courses">Courses</a> page and this total changes with it.
+    Your tuition estimate for the current teaching period, plus any other charges on your account.
   </p>
 
   <section class="card-grid">
@@ -29,10 +29,10 @@ const balance = tuition + unpaid.reduce((total, item) => total + item.amount, 0)
   </section>
 
   <section>
-    <h2>Other fee items</h2>
+    <h2 class="section-heading">Charges to pay</h2>
     {
-      items.length === 0 ? (
-        <p class="empty">No other fee items on record.</p>
+      unpaid.length === 0 ? (
+        <p class="empty">Nothing outstanding — no unpaid charges on record.</p>
       ) : (
         <table>
           <thead>
@@ -44,7 +44,39 @@ const balance = tuition + unpaid.reduce((total, item) => total + item.amount, 0)
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {unpaid.map((item) => (
+              <tr>
+                <td>{item.description}</td>
+                <td>{item.dueDate}</td>
+                <td>{formatMoney(item.amount)}</td>
+                <td>
+                  <span class={`badge badge-${item.status}`}>{item.status}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </section>
+
+  <section>
+    <h2 class="section-heading">Payment history</h2>
+    {
+      paid.length === 0 ? (
+        <p class="empty">No payments on record yet.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Description</th>
+              <th scope="col">Due</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paid.map((item) => (
               <tr>
                 <td>{item.description}</td>
                 <td>{item.dueDate}</td>

@@ -1,14 +1,36 @@
+/* Tokens are lifted from ANU's own published design system ("una"): the
+   primary scale is ANU Gold (700 = #be830e, the value that actually ships on
+   anu.edu.au), the neutrals are a true black/white scale, and the four
+   functional colours (ok/warn/error/info) are their status palette verbatim.
+   Public Sans is their real typeface. Gold stays an accent, per ANU's own
+   usage rule of not letting it dominate a page — text/background pairings
+   below default to ink-on-white or white-on-ink. */
 :root {
-  --ink: #16181d;
-  --muted: #5b6472;
-  --line: #e2e5ea;
-  --surface: #f7f8fa;
-  --brand: #00308f;
-  --brand-ink: #ffffff;
-  --accent: #0b5fff;
-  --ok: #1a7a4c;
-  --warn: #a3540a;
-  --radius: 0.5rem;
+  --ink: #131313;
+  --muted: #636363;
+  --muted-2: #8c8c8c;
+  --line: #e2e2e2;
+  --line-strong: #ccc;
+  --surface: #f6f6f6;
+  --surface-alt: #ffffff;
+
+  --brand: #be830e;
+  --brand-strong: #7a4d00;
+  --brand-soft: #fff7e9;
+  --brand-soft-2: #fcf0d7;
+
+  --ok-fg: #336103;
+  --ok-bg: #effada;
+  --warn-fg: #c53b00;
+  --warn-bg: #faefeb;
+  --error-fg: #a40303;
+  --error-bg: #ffe3e3;
+
+  --radius-sm: 0.4rem;
+  --radius: 0.65rem;
+  --radius-lg: 1rem;
+  --shadow-1: 0 2px 4px rgb(37 37 37 / 8%);
+  --shadow-2: 0 6px 16px rgb(37 37 37 / 12%);
 }
 
 * {
@@ -17,77 +39,318 @@
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family:
+    "Public Sans",
+    system-ui,
+    sans-serif;
   line-height: 1.55;
   color: var(--ink);
   background: var(--surface);
 }
 
-.portal-header {
+a {
+  color: var(--brand-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ---------- minibar ---------- */
+
+.minibar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: var(--brand);
-  color: var(--brand-ink);
-  padding: 0.9rem 1.5rem;
+  background: var(--ink);
+  color: #fff;
+  padding: 0.6rem 1.25rem;
+  border-bottom: 3px solid var(--brand);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
-.portal-brand {
-  color: var(--brand-ink);
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 1.05rem;
-}
-
-.portal-identity {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.9;
-}
-
-.portal-nav {
+.minibar-home {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  background: white;
-  border-bottom: 1px solid var(--line);
-  padding: 0 1rem;
-}
-
-.portal-nav a {
-  padding: 0.75rem 0.75rem;
-  color: var(--muted);
+  align-items: center;
+  gap: 0.6rem;
+  color: #fff;
   text-decoration: none;
-  font-size: 0.92rem;
-  border-bottom: 2px solid transparent;
 }
 
-.portal-nav a:hover {
+.minibar-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.minibar-title {
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: -0.01rem;
+}
+
+.minibar-title small {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--brand-soft-2);
+  letter-spacing: 0.02em;
+}
+
+.minibar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Native <details>/<summary> gives us keyboard- and screen-reader-accessible
+   disclosure menus (waffle/bell/profile) with no custom ARIA or JS state
+   machine. */
+details.dropdown {
+  position: relative;
+}
+
+details.dropdown > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details.dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  color: #fff;
+}
+
+.icon-btn:hover,
+details[open] > .icon-btn {
+  background: rgb(255 255 255 / 12%);
+}
+
+.badge-count {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.25rem;
+  border-radius: 999px;
+}
+
+.profile-chip:hover,
+details[open] > .profile-chip {
+  background: rgb(255 255 255 / 12%);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.profile-name {
+  font-size: 0.85rem;
+}
+
+.dropdown-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  background: var(--surface-alt);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-1);
+  padding: 0.9rem;
+  min-width: 16rem;
+}
+
+.waffle-panel {
+  right: auto;
+  left: 0;
+  padding: 0.6rem;
+  min-width: 22rem;
+}
+
+.waffle-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.3rem;
+}
+
+.waffle-grid a {
+  display: block;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
   color: var(--ink);
 }
 
-.portal-nav a[aria-current="page"] {
-  color: var(--brand);
-  border-bottom-color: var(--accent);
+.waffle-grid a:hover {
+  background: var(--surface);
+}
+
+.waffle-grid a[aria-current="page"] {
+  background: var(--brand-soft);
+}
+
+.waffle-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.waffle-grid a[aria-current="page"] .waffle-label {
+  color: var(--brand-strong);
+}
+
+.waffle-desc {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+.bell-panel h2,
+.profile-panel h2 {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: none;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.bell-panel section + section {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.bell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bell-list a {
+  font-size: 0.85rem;
+}
+
+.profile-panel {
+  font-size: 0.85rem;
+}
+
+.profile-panel p {
+  margin: 0 0 0.3rem;
+  color: var(--muted);
+}
+
+/* ---------- breadcrumb ---------- */
+
+.breadcrumb-bar {
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--line);
+}
+
+.breadcrumb {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  display: flex;
+  gap: 0.4rem;
+}
+
+.breadcrumb a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.crumb-current {
+  color: var(--brand-strong);
   font-weight: 600;
 }
 
+/* ---------- page shell ---------- */
+
 main {
-  max-width: 52rem;
+  max-width: 68rem;
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
 }
 
 h1 {
   margin-block-end: 0.25rem;
+  letter-spacing: -0.02rem;
 }
 
 h2 {
   font-size: 1.05rem;
+  margin-block: 0 0.75rem;
+  font-weight: 600;
+}
+
+.section-heading {
+  font-size: 1.05rem;
   margin-block: 2rem 0.75rem;
   padding-block-end: 0.35rem;
   border-bottom: 1px solid var(--line);
+  font-weight: 600;
 }
 
 .lede {
@@ -106,9 +369,103 @@ h2 {
   margin: 0.15rem 0 0;
 }
 
-a {
-  color: var(--accent);
+/* ---------- widgets (Today hub) ---------- */
+
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+  margin-block: 1.25rem;
 }
+
+.widget {
+  grid-column: span 1;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--brand);
+  border-radius: var(--radius-sm);
+  padding: 1.1rem 1.2rem;
+}
+
+.widget-wide {
+  grid-column: 1 / -1;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.widget-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.widget-header h2 {
+  margin: 0;
+}
+
+.widget-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.widget-icon svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.widget-link {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* ---------- course cards ---------- */
+
+.course-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+
+.course-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+}
+
+.course-card-code {
+  display: block;
+  font-weight: 700;
+  color: var(--brand-strong);
+  font-size: 0.9rem;
+}
+
+.course-card-title {
+  display: block;
+  font-size: 0.88rem;
+  margin: 0.1rem 0 0.5rem;
+}
+
+.course-card-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.65rem;
+}
+
+/* ---------- stat cards ---------- */
 
 .card-grid {
   display: grid;
@@ -121,9 +478,9 @@ a {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  background: white;
+  background: var(--surface-alt);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   padding: 0.9rem 1rem;
   text-decoration: none;
   color: inherit;
@@ -132,7 +489,7 @@ a {
 .stat-value {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--brand);
+  color: var(--brand-strong);
 }
 
 .stat-label {
@@ -140,31 +497,39 @@ a {
   color: var(--muted);
 }
 
+/* ---------- tables ---------- */
+
 table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--surface-alt);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 th,
 td {
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--line);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   vertical-align: top;
 }
 
 th {
   background: var(--surface);
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+/* Zebra striping matches the real ANUHub data tables (e.g. Enrolment
+   Details) rather than the flat-white rows a generic dashboard would use. */
+tbody tr:nth-child(even) {
+  background: var(--surface);
 }
 
 tbody tr:last-child td {
@@ -180,6 +545,8 @@ tbody tr:last-child td {
   white-space: nowrap;
 }
 
+/* ---------- forms & buttons ---------- */
+
 form {
   display: inline-flex;
   gap: 0.5rem;
@@ -188,25 +555,33 @@ form {
 }
 
 button {
-  padding: 0.35rem 0.85rem;
+  padding: 0.4rem 0.9rem;
   font: inherit;
   font-size: 0.85rem;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: white;
-  border-radius: var(--radius);
+  font-weight: 600;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
-button.secondary {
-  background: white;
-  color: var(--muted);
-  border-color: var(--line);
+button:hover {
+  background: #000;
+  border-color: #000;
 }
 
-button:hover {
-  opacity: 0.9;
+button.secondary {
+  background: var(--surface-alt);
+  color: var(--ink);
+  border-color: var(--line-strong);
 }
+
+button.secondary:hover {
+  background: var(--surface);
+}
+
+/* ---------- lists ---------- */
 
 .task-list,
 .session-list,
@@ -224,7 +599,7 @@ button:hover {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.6rem 0.85rem;
@@ -235,14 +610,15 @@ button:hover {
 }
 
 .session-list li {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.5rem 0.85rem;
+  font-size: 0.9rem;
 }
 
 .notice-list li {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.75rem 0.9rem;
@@ -260,12 +636,22 @@ button:hover {
 }
 
 .notice-category {
-  display: inline-block;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--brand);
+  color: var(--brand-strong);
   font-weight: 700;
+}
+
+.notice-title {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.95rem;
 }
 
 .badge {
@@ -275,14 +661,299 @@ button:hover {
   font-size: 0.78rem;
   font-weight: 600;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.badge-paid {
-  background: #e3f3ea;
-  color: var(--ok);
+.badge-paid,
+.badge-ok {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
 }
 
-.badge-unpaid {
-  background: #fbeadc;
-  color: var(--warn);
+.badge-unpaid,
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.badge-error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+/* ---------- status strip (MyTimetable's Allocated / Pending / Not
+   Allocated traffic-light pill counters, reused for assessment urgency) ---------- */
+
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.status-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 55%);
+  font-size: 0.78rem;
+}
+
+.status-chip-ok {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.status-chip-warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.status-chip-error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+/* ---------- Today hub sections (Attention / Academic / Personal) ---------- */
+
+.hub-section + .hub-section {
+  margin-top: 2.25rem;
+}
+
+.hub-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 0.6rem;
+}
+
+.hub-section-label::before {
+  content: "▾";
+  font-size: 0.72rem;
+  color: var(--muted-2);
+}
+
+.hub-section-desc {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0 0 0.9rem;
+}
+
+/* ---------- timetable week grid ----------
+   Modelled on the real MyTimetable week view: an hour-ruled grid with day
+   columns, sessions placed and sized proportional to their actual time
+   (not just stacked cards), and the current day tinted like its "today"
+   column highlight. */
+
+.tt-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  overflow-x: auto;
+}
+
+.tt-head,
+.tt-body-row {
+  display: grid;
+  grid-template-columns: 3.25rem repeat(7, minmax(6.5rem, 1fr));
+  min-width: 52rem;
+}
+
+.tt-head {
+  border-bottom: 1px solid var(--line);
+}
+
+.tt-head-cell {
+  padding: 0.5rem 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+  border-left: 1px solid var(--line);
+}
+
+.tt-corner {
+  border-left: none;
+}
+
+.tt-head-cell.tt-today {
+  color: var(--brand-strong);
+  background: var(--brand-soft);
+}
+
+.tt-today-tag {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tt-hours {
+  position: relative;
+}
+
+.tt-hour-label {
+  position: absolute;
+  left: 0;
+  right: 0.4rem;
+  transform: translateY(-0.55em);
+  text-align: right;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.tt-day-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--line),
+    var(--line) 1px,
+    transparent 1px,
+    transparent 100%
+  );
+  background-repeat: repeat-y;
+}
+
+.tt-day-col.tt-today {
+  background-color: var(--brand-soft);
+}
+
+.tt-block {
+  position: absolute;
+  left: 0.2rem;
+  right: 0.2rem;
+  border: 1px solid rgb(0 0 0 / 8%);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  overflow: hidden;
+}
+
+.tt-block strong {
+  display: block;
+  font-size: 0.78rem;
+}
+
+.tt-block-meta {
+  display: block;
+  color: var(--muted);
+}
+
+/* MyTimetable colour-codes each course's blocks in its week grid — the same
+   idea, reused as a left accent stripe + soft tint per course. */
+.course-color-a {
+  border-left-color: #7048e8;
+  background: #f3f0ff;
+}
+
+.course-color-b {
+  border-left-color: #0b7285;
+  background: #e3fafc;
+}
+
+.course-color-c {
+  border-left-color: #c2255c;
+  background: #fff0f6;
+}
+
+.course-color-d {
+  border-left-color: #e8590c;
+  background: #fff4e6;
+}
+
+.course-color-e {
+  border-left-color: #2b8a3e;
+  background: #ebfbee;
+}
+
+.course-color-f {
+  border-left-color: #1864ab;
+  background: #e7f5ff;
+}
+
+/* ---------- grouped content sections (assessments/results/courses/notices) ---------- */
+
+.course-group + .course-group,
+.content-group + .content-group {
+  margin-top: 1.75rem;
+}
+
+.course-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.course-group-header h2 {
+  margin: 0;
+}
+
+.weight-summary {
+  display: inline-block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+
+/* ---------- notice groups ---------- */
+
+.notice-group-heading {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+}
+
+/* ---------- deadlines ---------- */
+
+.deadline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.deadline-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.85rem;
+}
+
+.deadline-list .muted {
+  margin: 0.2rem 0 0;
 }

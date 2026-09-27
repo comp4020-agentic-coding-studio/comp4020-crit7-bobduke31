@@ -1,44 +1,94 @@
 ---
 import Portal from "../layouts/Portal.astro";
 import { getCurrentStudent, listAssessmentsForEnrolled } from "../lib/db";
+import { daysUntil, dueLabel } from "../lib/format";
 
 const student = getCurrentStudent();
 const rows = listAssessmentsForEnrolled(student.id);
+
+const byCourse = new Map<number, { course: (typeof rows)[number]["course"]; rows: typeof rows }>();
+for (const row of rows) {
+  const group = byCourse.get(row.course.id);
+  if (group) group.rows.push(row);
+  else byCourse.set(row.course.id, { course: row.course, rows: [row] });
+}
+const groups = [...byCourse.values()].sort((a, b) => a.course.code.localeCompare(b.course.code));
+
+// MyTimetable greets you with a row of "Allocated / Pending / Not Allocated"
+// traffic-light counters before the detail list — the same idea here,
+// counting assessments by how urgent their due date is.
+const toneCounts = { ok: 0, warn: 0, error: 0 };
+for (const row of rows) {
+  const days = daysUntil(row.assessment.dueDate);
+  const tone = days < 0 ? "error" : days > 7 ? "ok" : "warn";
+  toneCounts[tone]++;
+}
 ---
 
 <Portal title="Assessments" active="Assessments">
   <h1>Assessments</h1>
   <p class="lede">
-    Every assessment across your currently-enrolled courses, in one due-date order — the view
-    that dropping a course also affects.
+    Every assessment across your currently-enrolled courses, grouped by course.
   </p>
 
   {
-    rows.length === 0 ? (
+    groups.length === 0 ? (
       <p class="empty">
         No assessments yet — <a href="/courses">enrol in a course</a> to see its assessment tasks.
       </p>
     ) : (
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Due</th>
-            <th scope="col">Course</th>
-            <th scope="col">Assessment</th>
-            <th scope="col">Weight</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ assessment, course }) => (
-            <tr>
-              <td>{assessment.dueDate}</td>
-              <td>{course.code}</td>
-              <td>{assessment.title}</td>
-              <td>{assessment.weightPercent}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <>
+        <div class="status-strip">
+          <span class="status-chip status-chip-ok">
+            <span class="status-chip-count">{toneCounts.ok}</span> Upcoming
+          </span>
+          <span class="status-chip status-chip-warn">
+            <span class="status-chip-count">{toneCounts.warn}</span> Due soon
+          </span>
+          <span class="status-chip status-chip-error">
+            <span class="status-chip-count">{toneCounts.error}</span> Overdue
+          </span>
+        </div>
+        {groups.map(({ course, rows: courseRows }) => {
+        const totalWeight = courseRows.reduce((sum, r) => sum + r.assessment.weightPercent, 0);
+        return (
+          <section class="course-group">
+            <div class="course-group-header">
+              <h2>
+                {course.code} — {course.title}
+              </h2>
+              <span class="weight-summary">{totalWeight}% of {course.code} weighted so far</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Due</th>
+                  <th scope="col">Assessment</th>
+                  <th scope="col">Weight</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {courseRows.map(({ assessment }) => {
+                  const days = daysUntil(assessment.dueDate);
+                  const tone = days < 0 ? "error" : days > 7 ? "ok" : "warn";
+                  return (
+                    <tr>
+                      <td>{assessment.dueDate}</td>
+                      <td>{assessment.title}</td>
+                      <td>{assessment.weightPercent}%</td>
+                      <td>
+                        <span class={`badge badge-${tone}`}>{dueLabel(days)}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+        );
+      })}
+      </>
     )
   }
 </Portal>

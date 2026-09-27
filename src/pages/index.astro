@@ -3,103 +3,286 @@ import Portal from "../layouts/Portal.astro";
 import {
   currentTuitionEstimate,
   getCurrentStudent,
+  listAssessmentsForEnrolled,
   listEnrolments,
+  listFeeItems,
   listNotices,
+  listResults,
   listSessionsForEnrolled,
   listTasks,
 } from "../lib/db";
-import { formatMoney, sortByDayAndTime } from "../lib/format";
+import { daysUntil, dueLabel, formatMoney, sortByDayAndTime } from "../lib/format";
 
 const student = getCurrentStudent();
+const firstName = student.name.split(" ")[0];
+const hour = new Date().getHours();
+const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
 const enrolments = listEnrolments(student.id);
-const upcoming = sortByDayAndTime(
+const sessionRows = sortByDayAndTime(
   listSessionsForEnrolled(student.id).map(({ session, course }) => ({ ...session, course })),
-).slice(0, 3);
+);
+const nextSessionByCourseId = new Map<number, (typeof sessionRows)[number]>();
+for (const row of sessionRows) {
+  if (!nextSessionByCourseId.has(row.course.id)) nextSessionByCourseId.set(row.course.id, row);
+}
+
 const openTasks = listTasks(student.id).filter((t) => t.status === "open");
 const notices = listNotices(student.id).slice(0, 3);
 const tuition = currentTuitionEstimate(student.id);
+const unpaidFees = listFeeItems(student.id).filter((item) => item.status === "unpaid");
+const balance = tuition + unpaidFees.reduce((total, item) => total + item.amount, 0);
+const latestResult = listResults(student.id)[0];
+const upcomingAssessments = listAssessmentsForEnrolled(student.id).slice(0, 4);
+const teachingPeriod = enrolments[0]?.course.teachingPeriod;
 ---
 
 <Portal title="Today" active="Today">
-  <h1>Today</h1>
-  <p class="lede">
-    One place for what {student.name.split(" ")[0]} needs across enrolment, timetable, assessments,
-    fees and notices — instead of ANUHub, Canvas and MyTimetable separately.
-  </p>
+  <h1>{greeting}, {firstName}</h1>
+  {
+    teachingPeriod && (
+      <p class="lede">
+        {teachingPeriod} · {enrolments.length} course{enrolments.length === 1 ? "" : "s"} enrolled
+      </p>
+    )
+  }
 
-  <section class="card-grid">
-    <a class="stat-card" href="/courses">
-      <span class="stat-value">{enrolments.length}</span>
-      <span class="stat-label">Enrolled courses</span>
-    </a>
-    <a class="stat-card" href="/fees">
-      <span class="stat-value">{formatMoney(tuition)}</span>
-      <span class="stat-label">Tuition estimate</span>
-    </a>
-    <a class="stat-card" href="/notices">
-      <span class="stat-value">{notices.length}</span>
-      <span class="stat-label">Recent notices</span>
-    </a>
+  <section class="hub-section" aria-labelledby="attention-label">
+    <p class="hub-section-label" id="attention-label">Attention</p>
+    <p class="hub-section-desc">Things that need you to actually do something.</p>
+    <div class="widget-grid">
+      <section class="widget" aria-labelledby="tasks-heading">
+        <div class="widget-header">
+          <div class="widget-header-title">
+            <span class="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </span>
+            <h2 id="tasks-heading">Needs your attention</h2>
+          </div>
+        </div>
+        {
+          openTasks.length === 0 ? (
+            <p class="empty">Nothing outstanding — you're all caught up.</p>
+          ) : (
+            <ul class="task-list">
+              {openTasks.map((task) => (
+                <li>
+                  <form method="post" action="/api/tasks">
+                    <input type="hidden" name="task_id" value={task.id} />
+                    <input type="hidden" name="redirect_to" value="/" />
+                    <span>{task.href ? <a href={task.href}>{task.title}</a> : task.title}</span>
+                    <button type="submit">Mark done</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
+
+      <section class="widget widget-wide" aria-labelledby="deadlines-heading">
+        <div class="widget-header">
+          <div class="widget-header-title">
+            <span class="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+            </span>
+            <h2 id="deadlines-heading">Upcoming deadlines</h2>
+          </div>
+          <a class="widget-link" href="/assessments">View all assessments →</a>
+        </div>
+        {
+          upcomingAssessments.length === 0 ? (
+            <p class="empty">
+              No assessments yet — <a href="/courses">enrol in a course</a> to see its deadlines.
+            </p>
+          ) : (
+            <ul class="deadline-list">
+              {upcomingAssessments.map(({ assessment, course }) => {
+                const days = daysUntil(assessment.dueDate);
+                const tone = days < 0 ? "error" : days > 7 ? "ok" : "warn";
+                return (
+                  <li>
+                    <div>
+                      <strong>{course.code}</strong> {assessment.title}
+                      <p class="muted">
+                        {assessment.weightPercent}% · due {assessment.dueDate}
+                      </p>
+                    </div>
+                    <span class={`badge badge-${tone}`}>{dueLabel(days)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        }
+      </section>
+    </div>
   </section>
 
-  <section>
-    <h2>Needs your attention</h2>
-    {
-      openTasks.length === 0 ? (
-        <p class="empty">Nothing outstanding — you're all caught up.</p>
-      ) : (
-        <ul class="task-list">
-          {openTasks.map((task) => (
-            <li>
-              <form method="post" action="/api/tasks">
-                <input type="hidden" name="task_id" value={task.id} />
-                <input type="hidden" name="redirect_to" value="/" />
-                <span>
-                  {task.href ? <a href={task.href}>{task.title}</a> : task.title}
-                </span>
-                <button type="submit">Mark done</button>
-              </form>
-            </li>
-          ))}
-        </ul>
-      )
-    }
-  </section>
+  <section class="hub-section" aria-labelledby="academic-label">
+    <p class="hub-section-label" id="academic-label">Academic</p>
+    <p class="hub-section-desc">Your enrolments, timetable and results, in one place.</p>
+    <div class="widget-grid">
+      <section class="widget widget-wide" aria-labelledby="my-courses-heading">
+        <div class="widget-header">
+          <div class="widget-header-title">
+            <span class="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+              </svg>
+            </span>
+            <h2 id="my-courses-heading">My courses</h2>
+          </div>
+          <a class="widget-link" href="/courses">Manage courses & catalog →</a>
+        </div>
+        {
+          enrolments.length === 0 ? (
+            <p class="empty">
+              You're not enrolled in anything yet — <a href="/courses">browse the catalog</a>.
+            </p>
+          ) : (
+            <div class="course-card-grid">
+              {enrolments.map(({ course }) => {
+                const next = nextSessionByCourseId.get(course.id);
+                return (
+                  <article class="course-card">
+                    <span class="course-card-code">{course.code}</span>
+                    <span class="course-card-title">{course.title}</span>
+                    <p class="course-card-meta">
+                      {next
+                        ? `Next: ${next.activityType} ${next.dayOfWeek} ${next.startTime}`
+                        : "No sessions scheduled"}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          )
+        }
+      </section>
 
-  <section>
-    <h2>Your next sessions</h2>
-    {
-      upcoming.length === 0 ? (
-        <p class="empty">
-          No sessions yet — <a href="/courses">enrol in a course</a> to see it on your timetable.
-        </p>
-      ) : (
-        <ul class="session-list">
-          {upcoming.map((s) => (
-            <li>
-              <strong>{s.course.code}</strong> {s.activityType} — {s.dayOfWeek} {s.startTime}–
-              {s.endTime}, {s.location}
-            </li>
-          ))}
-        </ul>
-      )
-    }
-    <p><a href="/timetable">View full timetable →</a></p>
-  </section>
+      <section class="widget" aria-labelledby="sessions-heading">
+        <div class="widget-header">
+          <div class="widget-header-title">
+            <span class="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+              </svg>
+            </span>
+            <h2 id="sessions-heading">Your next sessions</h2>
+          </div>
+          <a class="widget-link" href="/timetable">View full timetable →</a>
+        </div>
+        {
+          sessionRows.length === 0 ? (
+            <p class="empty">
+              No sessions yet — <a href="/courses">enrol in a course</a> to see it on your
+              timetable.
+            </p>
+          ) : (
+            <ul class="session-list">
+              {sessionRows.slice(0, 3).map((s) => (
+                <li>
+                  <strong>{s.course.code}</strong> {s.activityType} — {s.dayOfWeek} {s.startTime}–
+                  {s.endTime}, {s.location}
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
 
-  <section>
-    <h2>Latest notices</h2>
-    <ul class="notice-list">
       {
-        notices.map((notice) => (
-          <li>
-            <span class="notice-category">{notice.category}</span>
-            <strong>{notice.title}</strong>
-            <p>{notice.body}</p>
-          </li>
-        ))
+        latestResult && (
+          <section class="widget" aria-labelledby="results-heading">
+            <div class="widget-header">
+              <div class="widget-header-title">
+                <span class="widget-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="6"></circle>
+                    <path d="M8.7 13.3 7 22l5-3 5 3-1.7-8.7"></path>
+                  </svg>
+                </span>
+                <h2 id="results-heading">Latest result</h2>
+              </div>
+              <a class="widget-link" href="/results">
+                View all results →
+              </a>
+            </div>
+            <ul class="session-list">
+              <li>
+                <strong>{latestResult.course.code}</strong> {latestResult.course.title} —{" "}
+                {latestResult.result.grade} ({latestResult.result.mark}),{" "}
+                {latestResult.result.teachingPeriod}
+              </li>
+            </ul>
+          </section>
+        )
       }
-    </ul>
-    <p><a href="/notices">View all notices →</a></p>
+    </div>
+  </section>
+
+  <section class="hub-section" aria-labelledby="personal-label">
+    <p class="hub-section-label" id="personal-label">Personal</p>
+    <p class="hub-section-desc">What you owe, and what's been happening on your account.</p>
+    <div class="widget-grid">
+      <section class="widget" aria-labelledby="fees-heading">
+        <div class="widget-header">
+          <div class="widget-header-title">
+            <span class="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </span>
+            <h2 id="fees-heading">Fees</h2>
+          </div>
+          <a class="widget-link" href="/fees">View fees →</a>
+        </div>
+        <div class="card-grid">
+          <div class="stat-card">
+            <span class="stat-value">{formatMoney(tuition)}</span>
+            <span class="stat-label">Tuition estimate</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{formatMoney(balance)}</span>
+            <span class="stat-label">Total balance</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="widget" aria-labelledby="notices-heading">
+        <div class="widget-header">
+          <div class="widget-header-title">
+            <span class="widget-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 11l18-7v16l-18-7z"></path>
+                <path d="M3 11v4a2 2 0 0 0 2 2h1"></path>
+              </svg>
+            </span>
+            <h2 id="notices-heading">Latest notices</h2>
+          </div>
+          <a class="widget-link" href="/notices">View all notices →</a>
+        </div>
+        <ul class="notice-list">
+          {
+            notices.map((notice) => (
+              <li>
+                <span class="notice-category">{notice.category}</span>
+                <strong class="notice-title">{notice.title}</strong>
+                <p>{notice.body}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
   </section>
 </Portal>

@@ -8,38 +8,107 @@ const rows = sortByDayAndTime(
   listSessionsForEnrolled(student.id).map(({ session, course }) => ({ ...session, course })),
 );
 
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const ROW_HEIGHT_REM = 3.2;
+
 const byDay = new Map<string, typeof rows>();
 for (const row of rows) {
   byDay.set(row.dayOfWeek, [...(byDay.get(row.dayOfWeek) ?? []), row]);
 }
+
+// MyTimetable colour-codes each course's blocks in its week grid — the same
+// idea, reused as a left accent stripe + soft tint per course.
+const COURSE_COLORS = ["a", "b", "c", "d", "e", "f"];
+const courseIds = [...new Set(rows.map((r) => r.course.id))].sort((a, b) => a - b);
+const colorByCourseId = new Map(courseIds.map((id, i) => [id, COURSE_COLORS[i % COURSE_COLORS.length]]));
+
+function toMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function formatHour(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12} ${period}`;
+}
+
+const allMinutes = rows.flatMap((r) => [toMinutes(r.startTime), toMinutes(r.endTime)]);
+const rawStart = allMinutes.length ? Math.min(...allMinutes) : 9 * 60;
+const rawEnd = allMinutes.length ? Math.max(...allMinutes) : 17 * 60;
+const gridStart = Math.floor(rawStart / 60) * 60;
+const gridEnd = Math.max(gridStart + 60, Math.ceil(rawEnd / 60) * 60);
+const hourCount = (gridEnd - gridStart) / 60;
+const hourLabels = Array.from({ length: hourCount }, (_, i) => gridStart + i * 60);
+const gridHeightRem = hourCount * ROW_HEIGHT_REM;
+
+// Sessions are a recurring weekly pattern with no stored calendar date, so
+// "today" is derived the same way a live MyTimetable highlights the current
+// day in its week grid — from the day of week only.
+const todayName = DAYS[(new Date().getDay() + 6) % 7];
 ---
 
 <Portal title="Timetable" active="Timetable">
   <h1>Timetable</h1>
   <p class="lede">
-    Derived from your current enrolments — no separate timetable data to keep in sync. Drop a
-    course on the <a href="/courses">Courses</a> page and its sessions disappear from here.
+    Your weekly class schedule, built from your currently-enrolled courses.
   </p>
 
   {
-    byDay.size === 0 ? (
+    rows.length === 0 ? (
       <p class="empty">
         No sessions yet — <a href="/courses">enrol in a course</a> to populate your timetable.
       </p>
     ) : (
-      [...byDay.entries()].map(([day, sessions]) => (
-        <section>
-          <h2>{day}</h2>
-          <ul class="session-list">
-            {sessions.map((s) => (
-              <li>
-                <strong>{s.course.code}</strong> {s.activityType} — {s.startTime}–{s.endTime},{" "}
-                {s.location}
-              </li>
+      <div class="tt-wrap">
+        <div class="tt-head">
+          <div class="tt-head-cell tt-corner" aria-hidden="true" />
+          {DAYS.map((day) => (
+            <div class={`tt-head-cell ${day === todayName ? "tt-today" : ""}`}>
+              {day.slice(0, 3)}
+              {day === todayName && <span class="tt-today-tag">today</span>}
+            </div>
+          ))}
+        </div>
+        <div class="tt-body-row">
+          <div class="tt-hours" style={`height: ${gridHeightRem}rem`}>
+            {hourLabels.map((m, i) => (
+              <span class="tt-hour-label" style={`top: ${i * ROW_HEIGHT_REM}rem`}>
+                {formatHour(m)}
+              </span>
             ))}
-          </ul>
-        </section>
-      ))
+          </div>
+          {DAYS.map((day) => {
+            const daySessions = byDay.get(day) ?? [];
+            return (
+              <div
+                class={`tt-day-col ${day === todayName ? "tt-today" : ""}`}
+                style={`height: ${gridHeightRem}rem; background-size: 100% ${ROW_HEIGHT_REM}rem`}
+              >
+                {daySessions.map((s) => {
+                  const top = ((toMinutes(s.startTime) - gridStart) / 60) * ROW_HEIGHT_REM;
+                  const height = Math.max(
+                    ((toMinutes(s.endTime) - toMinutes(s.startTime)) / 60) * ROW_HEIGHT_REM,
+                    1.4,
+                  );
+                  return (
+                    <div
+                      class={`tt-block course-color-${colorByCourseId.get(s.course.id)}`}
+                      style={`top: ${top}rem; height: ${height}rem`}
+                    >
+                      <strong>{s.course.code}</strong> {s.activityType}
+                      <span class="tt-block-meta">
+                        {s.startTime}–{s.endTime} · {s.location}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     )
   }
 </Portal>

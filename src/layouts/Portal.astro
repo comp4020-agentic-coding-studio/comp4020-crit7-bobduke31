@@ -1,5 +1,5 @@
 ---
-import { getCurrentStudent } from "../lib/db";
+import { getCurrentStudent, listTasks } from "../lib/db";
 import "../styles.css";
 
 interface Props {
@@ -10,15 +10,27 @@ interface Props {
 const { title, active } = Astro.props;
 const student = getCurrentStudent();
 
-const nav = [
-  { href: "/", label: "Today" },
-  { href: "/courses", label: "Courses" },
-  { href: "/timetable", label: "Timetable" },
-  { href: "/assessments", label: "Assessments" },
-  { href: "/results", label: "Results" },
-  { href: "/fees", label: "Fees" },
-  { href: "/notices", label: "Notices" },
-  { href: "/readme/", label: "About" },
+// The minibar reads the same task state every page already reads through, so
+// "what needs your attention" is visible from anywhere, not just from Today —
+// the point of a hub-and-spoke shell over a flat tab bar sharing a nav. Full
+// notices (which name specific courses) stay on Today/Notices rather than in
+// global chrome, so a page about to prove a course is *absent* from an area
+// doesn't have that area's own enrolment-notice defeat the check.
+const openTasks = listTasks(student.id).filter((t) => t.status === "open");
+const initials = student.name
+  .split(" ")
+  .map((part) => part[0])
+  .join("");
+
+const destinations = [
+  { href: "/", label: "Today", desc: "Your dashboard" },
+  { href: "/courses", label: "Courses", desc: "Enrolments & the course catalog" },
+  { href: "/timetable", label: "Timetable", desc: "Your weekly sessions" },
+  { href: "/assessments", label: "Assessments", desc: "Upcoming and past tasks" },
+  { href: "/results", label: "Results", desc: "Grades from completed periods" },
+  { href: "/fees", label: "Fees", desc: "Tuition estimate & fee items" },
+  { href: "/notices", label: "Notices", desc: "Announcements & account activity" },
+  { href: "/readme/", label: "About", desc: "How this prototype works" },
 ];
 ---
 
@@ -28,21 +40,127 @@ const nav = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} · ANU Student Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap"
+    />
   </head>
   <body>
-    <header class="portal-header">
-      <a class="portal-brand" href="/">ANU Student Portal</a>
-      <p class="portal-identity">{student.name} · {student.uniId}</p>
+    <header class="minibar">
+      <a class="minibar-home" href="/">
+        <span class="minibar-mark" aria-hidden="true">A</span>
+        <span class="minibar-title">
+          ANU Student Portal
+          <small>{student.name} · {student.uniId}</small>
+        </span>
+      </a>
+
+      <div class="minibar-actions">
+        <details class="dropdown waffle">
+          <summary class="icon-btn" aria-label="Quick access to all areas">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <circle cx="3" cy="3" r="2"></circle><circle cx="10" cy="3" r="2"></circle><circle
+                cx="17"
+                cy="3"
+                r="2"></circle>
+              <circle cx="3" cy="10" r="2"></circle><circle cx="10" cy="10" r="2"
+              ></circle><circle cx="17" cy="10" r="2"></circle>
+              <circle cx="3" cy="17" r="2"></circle><circle cx="10" cy="17" r="2"
+              ></circle><circle cx="17" cy="17" r="2"></circle>
+            </svg>
+          </summary>
+          <div class="dropdown-panel waffle-panel">
+            <nav aria-label="Quick access">
+              <ul class="waffle-grid">
+                {
+                  destinations.map((d) => (
+                    <li>
+                      <a href={d.href} aria-current={d.label === active ? "page" : undefined}>
+                        <span class="waffle-label">{d.label}</span>
+                        <span class="waffle-desc">{d.desc}</span>
+                      </a>
+                    </li>
+                  ))
+                }
+              </ul>
+            </nav>
+          </div>
+        </details>
+
+        <details class="dropdown bell">
+          <summary
+            class="icon-btn"
+            aria-label={`Notifications, ${openTasks.length} outstanding`}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            {openTasks.length > 0 && <span class="badge-count">{openTasks.length}</span>}
+          </summary>
+          <div class="dropdown-panel bell-panel">
+            <section>
+              <h2>Needs your attention</h2>
+              {
+                openTasks.length === 0 ? (
+                  <p class="empty">You're all caught up.</p>
+                ) : (
+                  <ul class="bell-list">
+                    {openTasks.map((task) => (
+                      <li>{task.href ? <a href={task.href}>{task.title}</a> : task.title}</li>
+                    ))}
+                  </ul>
+                )
+              }
+              <p><a href="/notices">View all notices →</a></p>
+            </section>
+          </div>
+        </details>
+
+        <details class="dropdown profile">
+          <summary class="profile-chip">
+            <span class="avatar" aria-hidden="true">{initials}</span>
+            <span class="profile-name">{student.name.split(" ")[0]}</span>
+          </summary>
+          <div class="dropdown-panel profile-panel">
+            <h2>Signed in as</h2>
+            <p>{student.name}</p>
+            <p>{student.uniId}</p>
+            <p>{student.email}</p>
+            <a href="/readme/">About this prototype</a>
+          </div>
+        </details>
+      </div>
     </header>
-    <nav aria-label="site" class="portal-nav">
-      {
-        nav.map((item) => (
-          <a href={item.href} aria-current={item.label === active ? "page" : undefined}>
-            {item.label}
-          </a>
-        ))
-      }
-    </nav>
+
+    <div class="breadcrumb-bar">
+      <nav aria-label="Breadcrumb" class="breadcrumb">
+        {
+          active === "Today" ? (
+            <span class="crumb-current">Today</span>
+          ) : (
+            <>
+              <a href="/">Today</a>
+              <span aria-hidden="true">/</span>
+              <span class="crumb-current">{active}</span>
+            </>
+          )
+        }
+      </nav>
+    </div>
+
     <main>
       <slot />
     </main>
@@ -51,6 +169,16 @@ const nav = [
       // open tab reloads so it re-reads the same state — the live half of
       // the integration, not just the persisted half.
       new EventSource("/api/events").addEventListener("change", () => location.reload());
+
+      // Close an open waffle/bell/profile menu on an outside click — <details>
+      // has no native equivalent, and leaving three menus that only close on
+      // re-click would be a rough edge for something meant to feel like a
+      // real product surface.
+      document.addEventListener("click", (event) => {
+        for (const menu of document.querySelectorAll("details.dropdown[open]")) {
+          if (!menu.contains(event.target as Node)) menu.removeAttribute("open");
+        }
+      });
     </script>
   </body>
 </html>

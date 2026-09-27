@@ -12,3 +12,20 @@ export function sortByDayAndTime<T extends { dayOfWeek: string; startTime: strin
 export function formatMoney(amount: number): string {
   return amount.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
 }
+
+// Whole calendar days between today and an assessment's "YYYY-MM-DD" due
+// date, ignoring time-of-day on both sides so "due today" reads as 0, not a
+// fraction of a day.
+export function daysUntil(dateStr: string): number {
+  const due = new Date(`${dateStr}T00:00:00`);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((due.getTime() - startOfToday.getTime()) / 86_400_000);
+}
+
+export function dueLabel(days: number): string {
+  if (days < 0) return "Overdue";
+  if (days === 0) return "Due today";
+  if (days === 1) return "Due tomorrow";
+  return `Due in ${days} days`;
+}

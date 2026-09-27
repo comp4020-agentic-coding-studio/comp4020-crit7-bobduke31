@@ -7,61 +7,70 @@ const student = getCurrentStudent();
 const enrolments = listEnrolments(student.id);
 const enrolledCourseIds = new Set(enrolments.map((e) => e.course.id));
 const available = listCourses().filter((c) => !enrolledCourseIds.has(c.id));
+
+const byPeriod = new Map<string, typeof enrolments>();
+for (const e of enrolments) {
+  byPeriod.set(e.course.teachingPeriod, [...(byPeriod.get(e.course.teachingPeriod) ?? []), e]);
+}
 ---
 
 <Portal title="Courses" active="Courses">
   <h1>Courses</h1>
   <p class="lede">
-    Enrolling or dropping here updates your <a href="/timetable">timetable</a>,
-    <a href="/assessments">assessments</a> and <a href="/fees">fee estimate</a> immediately — this
-    is the one flow in the portal backed by a real write.
+    Enrolling or dropping a course here updates your <a href="/timetable">timetable</a>,
+    <a href="/assessments">assessments</a> and <a href="/fees">fee estimate</a> right away.
   </p>
 
   <section>
-    <h2>Your enrolments</h2>
+    <h2 class="section-heading">Your study plan</h2>
     {
       enrolments.length === 0 ? (
         <p class="empty">You're not enrolled in anything yet.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Code</th>
-              <th scope="col">Title</th>
-              <th scope="col">Credit points</th>
-              <th scope="col">Fee</th>
-              <th scope="col">
-                <span class="visually-hidden">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {enrolments.map(({ course }) => (
-              <tr>
-                <td>{course.code}</td>
-                <td>{course.title}</td>
-                <td>{course.creditPoints}</td>
-                <td>{formatMoney(course.feeAmount)}</td>
-                <td>
-                  <form method="post" action="/api/enrolments">
-                    <input type="hidden" name="course_code" value={course.code} />
-                    <input type="hidden" name="action" value="drop" />
-                    <input type="hidden" name="redirect_to" value="/courses" />
-                    <button type="submit" class="secondary">
-                      Drop
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        [...byPeriod.entries()].map(([period, periodEnrolments]) => (
+          <div class="content-group">
+            <h3 class="notice-group-heading">{period}</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Credit points</th>
+                  <th scope="col">Fee</th>
+                  <th scope="col">
+                    <span class="visually-hidden">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodEnrolments.map(({ course }) => (
+                  <tr>
+                    <td>{course.code}</td>
+                    <td>{course.title}</td>
+                    <td>{course.creditPoints}</td>
+                    <td>{formatMoney(course.feeAmount)}</td>
+                    <td>
+                      <form method="post" action="/api/enrolments">
+                        <input type="hidden" name="course_code" value={course.code} />
+                        <input type="hidden" name="action" value="drop" />
+                        <input type="hidden" name="redirect_to" value="/courses" />
+                        <button type="submit" class="secondary">
+                          Drop
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
       )
     }
   </section>
 
   <section>
-    <h2>Course catalog</h2>
+    <h2 class="section-heading">Course catalog</h2>
     {
       available.length === 0 ? (
         <p class="empty">You're enrolled in everything on offer.</p>

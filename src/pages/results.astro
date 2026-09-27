@@ -4,38 +4,83 @@ import { getCurrentStudent, listResults } from "../lib/db";
 
 const student = getCurrentStudent();
 const rows = listResults(student.id);
+
+const averageMark = rows.length
+  ? Math.round(rows.reduce((sum, r) => sum + r.result.mark, 0) / rows.length)
+  : 0;
+
+const byPeriod = new Map<string, typeof rows>();
+for (const row of rows) {
+  byPeriod.set(row.result.teachingPeriod, [...(byPeriod.get(row.result.teachingPeriod) ?? []), row]);
+}
 ---
 
 <Portal title="Results" active="Results">
   <h1>Results</h1>
-  <p class="lede">Grades from completed teaching periods. This is historical record, not a flow this prototype writes to.</p>
+  <p class="lede">
+    Grades from your completed teaching periods.
+  </p>
+
+  {
+    rows.length > 0 && (
+      <section aria-labelledby="history-heading">
+        <h2 class="section-heading" id="history-heading">
+          Academic history
+        </h2>
+        <div class="card-grid">
+          <div class="stat-card">
+            <span class="stat-value">{rows.length}</span>
+            <span class="stat-label">Completed course{rows.length === 1 ? "" : "s"}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{averageMark}</span>
+            <span class="stat-label">Average mark</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{byPeriod.size}</span>
+            <span class="stat-label">Teaching period{byPeriod.size === 1 ? "" : "s"}</span>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   {
     rows.length === 0 ? (
       <p class="empty">No results recorded yet.</p>
     ) : (
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Teaching period</th>
-            <th scope="col">Course</th>
-            <th scope="col">Grade</th>
-            <th scope="col">Mark</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ result, course }) => (
-            <tr>
-              <td>{result.teachingPeriod}</td>
-              <td>
-                {course.code} {course.title}
-              </td>
-              <td>{result.grade}</td>
-              <td>{result.mark}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <section aria-labelledby="statement-heading">
+        <h2 class="section-heading" id="statement-heading">
+          Statement of results
+        </h2>
+        {
+          [...byPeriod.entries()].map(([period, periodRows]) => (
+            <div class="content-group">
+              <h3 class="notice-group-heading">{period}</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Course</th>
+                    <th scope="col">Grade</th>
+                    <th scope="col">Mark</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {periodRows.map(({ result, course }) => (
+                    <tr>
+                      <td>
+                        {course.code} {course.title}
+                      </td>
+                      <td>{result.grade}</td>
+                      <td>{result.mark}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))
+        }
+      </section>
     )
   }
 </Portal>
